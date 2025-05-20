@@ -1,0 +1,1 @@
+epoch,loss,bce_loss,kl_loss,auroc,aupr,grad_norm

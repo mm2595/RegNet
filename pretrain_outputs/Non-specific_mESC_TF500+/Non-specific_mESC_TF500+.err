@@ -1,0 +1,19 @@
+/cache/home/mm2595/RegNet/regnet/preprocessing/data_loader.py:77: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  edge_index=torch.tensor(edge_index, dtype=torch.long),
+/cache/home/mm2595/RegNet/regnet/preprocessing/data_loader.py:78: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  edge_attr=torch.tensor(edge_weights, dtype=torch.float)
+/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/site-packages/torch_geometric/sampler/neighbor_sampler.py:61: UserWarning: Using 'NeighborSampler' without a 'pyg-lib' installation is deprecated and will be removed soon. Please install 'pyg-lib' for accelerated neighborhood sampling
+  warnings.warn(f"Using '{self.__class__.__name__}' without a "
+Traceback (most recent call last):
+  File "/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/cache/home/mm2595/RegNet/regnet/training/pretrain.py", line 187, in <module>
+    main()
+  File "/cache/home/mm2595/RegNet/regnet/training/pretrain.py", line 163, in main
+    loss, aupr, auroc = train_epoch(
+  File "/cache/home/mm2595/RegNet/regnet/training/pretrain.py", line 69, in train_epoch
+    model.vae.loss_function(mu, logvar) * args.beta_kl
+NameError: name 'args' is not defined
+slurmstepd: error: *** JOB 43534399 ON gpuk004 CANCELLED AT 2025-05-06T23:19:15 DUE TO TIME LIMIT ***

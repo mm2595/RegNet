@@ -1,0 +1,24 @@
+===== RegNet Workflow on HPC =====
+Data directory: data/Benchmark Dataset/Lofgof Dataset/mESC/TFs+500
+Output directory: pretrain_outputs/Lofgof_mESC_TF500+
+Running on node: gpu005.amarel.rutgers.edu
+GPU info: GPU 0: Quadro M6000 (UUID: GPU-38ab5191-a447-04a5-f9d1-e5e04404479b)
+GPU 1: Quadro M6000 (UUID: GPU-f6371400-0677-13ca-5d64-a82f4befe91e)
+GPU 2: Quadro M6000 (UUID: GPU-31e5812e-1600-514a-28ed-68c426a91dbb)
+GPU 3: Quadro M6000 (UUID: GPU-534186fc-7058-fd01-a590-7ba361b4984d)
+
+Step 1: Running train-test split...
+Identified 4 hub TFs out of 620 total TFs
+Hub threshold: 209.09999999999997 edges
+Splitting edges for hub TFs...
+Splitting edges for regular TFs...
+Warning: Found 8 genes appearing only in test set
+Reallocating some edges explicitly to maintain gene consistency...
+Sophisticated train-test split completed.
+Final Train edges: 309071, Final Test edges: 77301
+Positive train edges: 2210, Positive test edges: 570
+Train positive %: 0.72%, Test positive %: 0.74%
+Train-test split complete. Results saved to: pretrain_outputs/Lofgof_mESC_TF500+/split
+
+Step 2: Running pretraining on training data...
+Loading data from train_test_split format...

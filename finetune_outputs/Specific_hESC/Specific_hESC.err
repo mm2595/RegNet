@@ -1,0 +1,50 @@
+/cache/home/mm2595/RegNet/regnet/training/finetune2.py:115: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at ../torch/csrc/utils/tensor_new.cpp:278.)
+  edge_index   = torch.tensor(np.nonzero(adj), dtype=torch.long, device=dev)
+/cache/home/mm2595/RegNet/regnet/preprocessing/data_loader.py:77: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  edge_index=torch.tensor(edge_index, dtype=torch.long),
+/cache/home/mm2595/RegNet/regnet/preprocessing/data_loader.py:78: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  edge_attr=torch.tensor(edge_weights, dtype=torch.float)
+/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/site-packages/torch_geometric/sampler/neighbor_sampler.py:61: UserWarning: Using 'NeighborSampler' without a 'pyg-lib' installation is deprecated and will be removed soon. Please install 'pyg-lib' for accelerated neighborhood sampling
+  warnings.warn(f"Using '{self.__class__.__name__}' without a "
+/cache/home/mm2595/RegNet/regnet/training/finetune2.py:128: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = filter_state_dict(torch.load(args.pretrained_model,
+/cache/home/mm2595/RegNet/regnet/preprocessing/utils.py:133: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  saved = torch.load(filepath, map_location=device)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+/cache/home/mm2595/RegNet/regnet/training/loss_functions.py:169: UserWarning: Using a target size (torch.Size([1, 128])) that is different to the input size (torch.Size([5219, 128])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(emb_pairs, prototype)
+Traceback (most recent call last):
+  File "/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/cache/home/mm2595/RegNet/regnet/training/finetune2.py", line 320, in <module>
+    main()
+  File "/cache/home/mm2595/RegNet/regnet/training/finetune2.py", line 315, in main
+    save_outputs(model, dataloader, dev, args.output_dir,
+NameError: name 'save_outputs' is not defined

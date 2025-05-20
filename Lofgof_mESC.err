@@ -1,0 +1,20 @@
+/cache/home/mm2595/RegNet/regnet/training/../../regnet/preprocessing/data_loader.py:98: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  edge_index=torch.tensor(edge_index, dtype=torch.long),
+/cache/home/mm2595/RegNet/regnet/training/../../regnet/preprocessing/data_loader.py:99: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  edge_attr=torch.tensor(edge_weights, dtype=torch.float)
+/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/site-packages/torch_geometric/sampler/neighbor_sampler.py:61: UserWarning: Using 'NeighborSampler' without a 'pyg-lib' installation is deprecated and will be removed soon. Please install 'pyg-lib' for accelerated neighborhood sampling
+  warnings.warn(f"Using '{self.__class__.__name__}' without a "
+Traceback (most recent call last):
+  File "/cache/home/mm2595/RegNet/regnet/training/pretrain.py", line 146, in <module>
+    main()
+  File "/cache/home/mm2595/RegNet/regnet/training/pretrain.py", line 140, in main
+    save_intermediate_outputs(model, dataloader, args.device, args.output_dir)
+  File "/cache/home/mm2595/RegNet/regnet/training/pretrain.py", line 96, in save_intermediate_outputs
+    all_attention_weights = torch.cat(all_attention_weights).numpy()
+RuntimeError: Sizes of tensors must match except in dimension 0. Expected size 1033 but got size 613 for tensor number 1 in the list.
+usage: plot_embeddings.py [-h] --original_features ORIGINAL_FEATURES
+                          --graphsage_embeddings GRAPHSAGE_EMBEDDINGS
+                          [--method {tsne,umap}] [--output_dir OUTPUT_DIR]
+plot_embeddings.py: error: the following arguments are required: --graphsage_embeddings
+/home/mm2595/miniconda3/envs/RegNet_env/lib/python3.10/site-packages/umap/umap_.py:1952: UserWarning: n_jobs value 1 overridden to 1 by setting random_state. Use no seed for parallelism.
+  warn(
