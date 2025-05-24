@@ -17,11 +17,12 @@ class RegNet(nn.Module):
                  input_dim:  int,
                  hidden_dim: int,
                  latent_dim: int,
-                 num_layers: int = 2):
+                 num_layers: int = 2,
+                 dropout: float = 0.0):
         super().__init__()
 
         # --- encoders ------------------------------------------------------- #
-        self.graphsage = GraphSAGE(input_dim, hidden_dim, num_layers)
+        self.graphsage = GraphSAGE(input_dim, hidden_dim, num_layers, dropout)
         self.attention = SelfAttentionGateFusion(hidden_dim, hidden_dim)
         self.vae       = VAE(hidden_dim, latent_dim, hidden_dim)
 
@@ -29,8 +30,7 @@ class RegNet(nn.Module):
         self.edge_classifier = nn.Sequential(
             nn.Linear(latent_dim * 2, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, 1),
-            nn.Sigmoid()
+            nn.Linear(hidden_dim, 1)
         )
 
     # --------------------------------------------------------------------- #

@@ -1,6 +1,6 @@
 import argparse, os, numpy as np, pandas as pd, torch, torch.optim as optim
 import torch.nn as nn
-from sklearn.metrics import average_precision_score, roc_auc_score   
+from sklearn.metrics import average_precision_score, roc_auc_score
 
 
 from regnet.models.regnet import RegNet

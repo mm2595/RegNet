@@ -36,7 +36,7 @@ class GraphSAGEConv(torch.nn.Module):
 
 
 class GraphSAGE(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_layers=2):
+    def __init__(self, input_dim, hidden_dim, num_layers=2, dropout: float = 0.0):
         super().__init__()
 
         layers = []
@@ -47,8 +47,11 @@ class GraphSAGE(torch.nn.Module):
             in_dim = hidden_dim
 
         self.layers = nn.ModuleList(layers)
+        self.dropout = dropout
 
     def forward(self, x, edge_index):
         for layer in self.layers:
             x = F.relu(layer(x, edge_index))
+            if self.dropout > 0:
+                x = F.dropout(x, p=self.dropout, training=self.training)
         return x

@@ -118,7 +118,7 @@ def compute_fisher_on_loader(
         loss.backward()
 
         for n, p in model.named_parameters():
-            if n in fisher:
+            if n in fisher and p.grad is not None:
                 fisher[n] += p.grad.detach()**2
 
     num_batches = len(loader)

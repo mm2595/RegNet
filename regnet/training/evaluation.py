@@ -51,7 +51,8 @@ def evaluate_model(model, loader, device):
             node_pair = data.edge_index
             var_log = model.edge_variance(mu, logvar, node_pair.t())
             
-            all_preds.append(logits.detach().cpu())
+            probs = torch.sigmoid(logits)
+            all_preds.append(probs.cpu())
             all_labels.append(data.edge_attr.float().cpu())
             all_logits.append(logits.detach().cpu())
             all_var.append(var_log.detach().cpu())

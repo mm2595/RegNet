@@ -23,6 +23,7 @@ SPLIT_DIR="${OUTPUT_DIR}/split"
 PRETRAIN_DIR="${OUTPUT_DIR}/pretrain"
 EVAL_DIR="${OUTPUT_DIR}/evaluation"
 TEMP_DIR="${OUTPUT_DIR}/temperature_calibration"
+VAL_SPLIT_DIR="${SPLIT_DIR}/val_split"
 
 # Dataset files
 EXPR_FILE="${DATA_DIR}/BL--ExpressionData.csv"
@@ -40,9 +41,13 @@ EPOCHS=50
 LEARNING_RATE=0.001
 BETA_KL=1.0
 RECON_WEIGHT=0.1
+DROPOUT=0.2
+ENTROPY_WEIGHT=0.01
+PATIENCE=8
+MIN_DELTA=0.0001
 
 # Create directory structure
-mkdir -p "${SPLIT_DIR}" "${PRETRAIN_DIR}" "${EVAL_DIR}" "${TEMP_DIR}"
+mkdir -p "${SPLIT_DIR}" "${PRETRAIN_DIR}" "${EVAL_DIR}" "${TEMP_DIR}" "${VAL_SPLIT_DIR}"
 
 echo "===== RegNet Workflow on HPC ====="
 echo "Data directory: ${DATA_DIR}"
@@ -63,6 +68,21 @@ else
       --output_dir "${SPLIT_DIR}" \
       --test_size ${TEST_SIZE}
     echo "Train-test split complete. Results saved to: ${SPLIT_DIR}"
+fi
+echo ""
+
+# Step 1.5: Create validation split inside training data
+if [ -f "${VAL_SPLIT_DIR}/test_labels.csv" ]; then
+    echo "Validation split already exists. Skipping step 1.5."
+else
+    echo "Step 1.5: Creating validation split from training data..."
+    python regnet/preprocessing/train_test_split.py \
+      --label_file "${SPLIT_DIR}/train_labels.csv" \
+      --tf_file "${TF_FILE}" \
+      --target_file "${TARGET_FILE}" \
+      --output_dir "${VAL_SPLIT_DIR}" \
+      --test_size 0.1
+    echo "Validation split complete. Results in ${VAL_SPLIT_DIR}"
 fi
 echo ""
 
@@ -100,24 +120,64 @@ def main_skip_fisher():
     loader = create_batches_NC(expr_df, edge_index,
                                edge_labels, args.batch_size)
 
+    # Validation loader
+    val_loader = None
+    if args.val_label_data and os.path.isfile(args.val_label_data):
+        if args.split_data:
+            val_edge_index, val_edge_labels = build_edge_index_from_split(args.val_label_data, gene_to_idx)
+        else:
+            val_edge_index, val_edge_labels = build_edge_index(args.val_label_data, args.TF_file, args.target_file, gene_to_idx)
+        val_loader = create_batches_NC(expr_df, val_edge_index, val_edge_labels, args.batch_size)
+
     model = RegNet(expr_df.shape[1], args.hidden_dim,
-                   args.latent_dim, args.num_layers).to(args.device)
-    criterion = nn.BCELoss()
+                   args.latent_dim, args.num_layers, dropout=args.dropout).to(args.device)
+
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     history = []
+    best_aupr = -1.0
+    wait = 0
+    best_state = None
     for ep in range(args.epochs):
         loss, aupr, auroc = train_epoch(
             model, loader, optimizer, criterion, args.device, 
-            beta_kl=args.beta_kl, recon_weight=args.recon_weight)
-        print(f"Ep{ep+1:02d}  L{loss:.4f}  AUPR{aupr:.3f} AUROC{auroc:.3f}")
-        history.append({"epoch": ep+1,
-                        "loss": loss, "AUPR": aupr, "AUROC": auroc})
+            beta_kl=args.beta_kl, recon_weight=args.recon_weight, entropy_weight=args.entropy_weight)
+        # Validation metric
+        val_aupr = None
+        if val_loader is not None:
+            with torch.no_grad():
+                p_list, y_list = [], []
+                for vd in val_loader:
+                    vd = vd.to(args.device)
+                    logits_v, _, _, _, _ = model(vd.x, vd.edge_index, vd.edge_index.t())
+                    p_list.append(torch.sigmoid(logits_v).cpu()); y_list.append(vd.edge_attr.float().cpu())
+                p_all = torch.cat(p_list); y_all = torch.cat(y_list)
+                val_aupr, _ = evaluate_metrics(p_all, y_all)
+
+        msg = f"Ep{ep+1:02d}  L{loss:.4f}  train AUPR {aupr:.3f}"
+        if val_aupr is not None:
+            msg += f"  val AUPR {val_aupr:.3f}"
+        msg += f" AUROC {auroc:.3f}"
+        print(msg)
+        history.append({"epoch": ep+1, "loss": loss, "AUPR": aupr, "val_AUPR": val_aupr, "AUROC": auroc})
+
+        metric = val_aupr if val_aupr is not None else aupr
+        if metric > best_aupr + args.min_delta:
+            best_aupr = metric
+            best_state = {k: v.cpu() for k, v in model.state_dict().items()}
+            wait = 0
+        else:
+            wait += 1
+            if wait >= args.patience:
+                print(f"Early stopping at epoch {ep+1}")
+                break
 
     pd.DataFrame(history).to_csv(f"{args.output_dir}/training_metrics.csv",
                                  index=False)
-    torch.save(model.state_dict(),
-               f"{args.output_dir}/regnet_pretrained.pth")
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    torch.save(model.state_dict(), f"{args.output_dir}/regnet_pretrained.pth")
 
     # Skip Fisher information calculation which causes errors
     print("\nSkipping Fisher information calculation...")
@@ -143,6 +203,11 @@ EOF
       --lr ${LEARNING_RATE} \
       --beta_kl ${BETA_KL} \
       --recon_weight ${RECON_WEIGHT} \
+      --entropy_weight ${ENTROPY_WEIGHT} \
+      --dropout ${DROPOUT} \
+      --val_label_data "${VAL_SPLIT_DIR}/test_labels.csv" \
+      --patience ${PATIENCE} \
+      --min_delta ${MIN_DELTA} \
       --output_dir "${PRETRAIN_DIR}" \
       --device cuda
 
@@ -307,6 +372,18 @@ else
     echo "Temperature calibration file not found. Skipping final evaluation."
 fi
 echo ""
+
+# Step 6: Bayesian shrinkage visualisation
+echo "Step 6: Creating Bayesian shrinkage visualisations..."
+
+python -m regnet.visualization.visualize_regnet \
+  --pretrain_dir "${PRETRAIN_DIR}" \
+  --tf_file "${TF_FILE}" \
+  --expression_csv "${EXPR_FILE}" \
+  --plots shrinkage \
+  --method umap
+
+echo "Visualisations saved to ${PRETRAIN_DIR}"
 
 echo "===== RegNet Workflow Complete ====="
 echo "Results are available in: ${OUTPUT_DIR}"

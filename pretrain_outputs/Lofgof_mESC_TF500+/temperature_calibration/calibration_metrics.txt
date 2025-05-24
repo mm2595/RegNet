@@ -1,0 +1,5 @@
+Temperature: 1.1337
+Uncalibrated AUROC: 0.7678
+Uncalibrated AUPR: 0.3770
+Calibrated AUROC: 0.7678
+Calibrated AUPR: 0.3770

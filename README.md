@@ -9,6 +9,7 @@ RegNet is a modular graph neural network framework for inferring gene regulatory
 - **Variational Autoencoder (VAE)**: imposes a probabilistic latent structure with Kullback–Leibler divergence regularization and includes reconstruction capability as an auxiliary task.
 - **Edge Classifier**: MLP that scores pairwise combinations of latent means \(\mu_i \oplus \mu_j\) to predict regulatory links.
 - **Edge Uncertainty**: Calculation of edge variance to quantify prediction uncertainty.
+- **Dropout & Entropy Regularisation**: GraphSAGE layers now support configurable dropout, and a row-entropy penalty sparsifies the global attention matrix.
 - **Temperature Calibration**: Scaling of logits to produce better-calibrated probabilities.
 - **Complete Pipeline**:
   1. **Data Splitting**: Partitions data into train/test sets while preserving network properties.
@@ -88,11 +89,15 @@ pip install -r requirements.txt
 
 ## Complete Pipeline
 
-The RegNet pipeline implements a comprehensive workflow for GRN inference:
+The RegNet pipeline implements a comprehensive workflow for GRN inference. Training-time regularisation and stopping are now handled as follows:
+
+* **Dropout** (`--dropout`) applied after every GraphSAGE layer.
+* **Attention-entropy loss** (`--entropy_weight`) encourages a sparse, interpretable attention map.
+* **Early stopping** (patience & min_delta) monitors AUPR on the validation fold created in step 1.5.
 
 ### 1. Train-Test Split
 
-Before model training, data is partitioned into train and test sets while preserving network properties:
+After model training, data is partitioned into train and test sets while preserving network properties:
 
 ```bash
 python regnet/preprocessing/train_test_split.py \
@@ -106,6 +111,12 @@ python regnet/preprocessing/train_test_split.py \
 - Splits interaction data preserving hub TF distribution
 - Handles multiple dataset formats (standard and split formats)
 - Creates balanced train/test datasets for robust evaluation
+
+### 1.5 Validation Split (automatic)
+
+`scripts/run_pretrain.sh` automatically takes the **training** edges produced in step 1 and runs the same hub-aware splitter with `--test_size 0.1` to carve out a validation fold (`split/val_split/test_labels.csv`).
+
+This file is passed to `pretrain.py` via `--val_label_data` and used exclusively for early-stopping.
 
 ### 2. Pretraining (Supervised)
 
@@ -124,6 +135,9 @@ python regnet/training/pretrain.py \
   --num_layers 2 \
   --beta_kl 1.0 \
   --recon_weight 0.1 \
+  --entropy_weight 0.01 \
+  --dropout 0.2 \
+  --val_label_data output/split/val_split/test_labels.csv \
   --device cuda \
   --output_dir pretrain_outputs/
 ```
@@ -197,10 +211,11 @@ bash scripts/run_pretrain.sh
 
 This script automates the entire workflow:
 1. Splits data into train/test sets
-2. Pretrains the model on training data
-3. Evaluates on test data
-4. Performs temperature calibration
-5. Conducts final evaluation with calibrated probabilities
+2. Creates an internal validation split from the training edges
+3. Pretrains the model on training data
+4. Evaluates on test data
+5. Performs temperature calibration
+6. Conducts final evaluation with calibrated probabilities
 
 ## Results on Benchmark Datasets
 

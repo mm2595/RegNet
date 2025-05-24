@@ -91,7 +91,7 @@ def main():
         emb_df = pd.read_csv(args.vae_embeddings, index_col=0)
         embeddings = emb_df.values
     else:
-        embeddings = np.load(args.vae_embeddings)
+    embeddings = np.load(args.vae_embeddings)
 
     # Visualize latent space
     os.makedirs(args.output_dir, exist_ok=True)

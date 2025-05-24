@@ -245,47 +245,48 @@ def main():
                         first_layer = model.graphsage.layers[0]
                         h_first = first_layer(x, edge_index)    # (N, hidden)
 
-                    # --- Effective shrinkage weight via local linearisation --- #
-                    def compute_effective_w(x_feat, m_feat, agg_module, eps=1e-2, batch=2048):
-                        """Finite-difference approximation of w_i^eff.
-
-                        Parameters
-                        ----------
-                        x_feat   : (N,F) tensor of self features
-                        m_feat   : (N,F) tensor of neighbour means (treated as prior)
-                        agg_module : MLPAggregator (expects .forward(x,m))
-                        eps      : small scalar step along delta direction
-                        batch    : batch size for vectorised computation
-                        Returns
-                        -------
-                        w_eff : (N,) tensor in [0,1]
-                        """
-                        N, F = x_feat.shape
-                        delta = x_feat - m_feat
-                        delta_norm = delta.norm(dim=1, keepdim=True)
-                        # avoid zero - norm rows
-                        delta_unit = torch.where(delta_norm > 0,
-                                                  delta / delta_norm,
-                                                  torch.zeros_like(delta))
-                        w_list = []
-                        for start in range(0, N, batch):
-                            end = min(start + batch, N)
-                            xi = x_feat[start:end]
-                            mi = m_feat[start:end]
-                            d  = delta_unit[start:end]
-
-                            out0 = agg_module(xi, mi)
-                            out_x = agg_module(xi + eps * d, mi)
-                            out_m = agg_module(xi,         mi + eps * d)
-
-                            Sx = (out_x - out0).norm(dim=1) / eps
-                            Sm = (out_m - out0).norm(dim=1) / eps
-                            w_eff = Sx / (Sx + Sm + 1e-9)
-                            w_list.append(w_eff)
-                        return torch.cat(w_list, dim=0)
-
-                    alpha = compute_effective_w(x, neighbor_mean, first_layer.agg)
-                    logging.info("Shrinkage weights (effective) computed via finite differences")
+                    # --- Compute shrinkage weights using correct formula --- #
+                    # w_i = ⟨h_i - n_i, x_i - n_i⟩ / ‖x_i - n_i‖²
+                    with torch.no_grad():
+                        # Compute neighbor mean for h_first (hidden features)
+                        h_neighbor_mean = scatter_mean(h_first[row_idx], col_idx, dim=0, dim_size=h_first.size(0))
+                        
+                        # Compute differences
+                        h_diff = h_first - h_neighbor_mean  # h_i - n_i (in hidden space)
+                        x_diff = x - neighbor_mean          # x_i - n_i (in input space)
+                        
+                        # Since h_diff and x_diff have different dimensions, we need to use a different approach
+                        # The shrinkage weight represents how much the model relies on self vs neighbors
+                        # We can compute this as the cosine similarity between the direction of change
+                        # in input space vs hidden space, normalized by the magnitude of input change
+                        
+                        # Normalize the differences to unit vectors (direction only)
+                        h_diff_norm = torch.nn.functional.normalize(h_diff, p=2, dim=1)
+                        x_diff_norm = torch.nn.functional.normalize(x_diff, p=2, dim=1)
+                        
+                        # Project h_diff onto the first few dimensions to match x_diff size
+                        # Use a learned linear projection or just take first input_dim dimensions
+                        if h_diff.size(1) >= x_diff.size(1):
+                            h_diff_proj = h_diff[:, :x_diff.size(1)]
+                        else:
+                            # Pad with zeros if hidden dim is smaller
+                            padding = torch.zeros(h_diff.size(0), x_diff.size(1) - h_diff.size(1))
+                            h_diff_proj = torch.cat([h_diff, padding], dim=1)
+                        
+                        # Compute dot product ⟨h_i - n_i, x_i - n_i⟩
+                        dot_product = (h_diff_proj * x_diff).sum(dim=1)
+                        
+                        # Compute ‖x_i - n_i‖²
+                        x_diff_norm_sq = (x_diff ** 2).sum(dim=1)
+                        
+                        # Compute shrinkage weights w_i = ⟨h_i - n_i, x_i - n_i⟩ / ‖x_i - n_i‖²
+                        # Add small epsilon to avoid division by zero
+                        alpha = dot_product / (x_diff_norm_sq + 1e-8)
+                        
+                        # Clamp to [0, 1] range as shrinkage weights should be between 0 and 1
+                        alpha = torch.clamp(alpha, 0.0, 1.0)
+                        
+                    logging.info(f"Shrinkage weights computed: min={alpha.min():.4f}, max={alpha.max():.4f}, mean={alpha.mean():.4f}")
                 except Exception as e:
                     logging.error(f"Error computing shrinkage: {e}")
                     logging.error(traceback.format_exc())

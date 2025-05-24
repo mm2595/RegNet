@@ -11,7 +11,7 @@ def split(label_file, tf_file, target_file, output_dir, test_size=0.2, hub_ratio
     label_df = pd.read_csv(label_file)
     tf_df = pd.read_csv(tf_file)
     target_df = pd.read_csv(target_file)
-    
+
     # Check for common column issues and fix them
     if 'index' not in tf_df.columns and 'index' in tf_df.columns[1:]:
         tf_df.rename(columns={tf_df.columns[1]: 'index'}, inplace=True)
@@ -58,16 +58,16 @@ def split(label_file, tf_file, target_file, output_dir, test_size=0.2, hub_ratio
         neg_edges = tf_group[tf_group['Label'] == 0]
 
         if len(pos_edges) > 0:
-            pos_train, pos_test = train_test_split(
-                pos_edges, test_size=test_size, random_state=random_state, shuffle=True
-            )
+        pos_train, pos_test = train_test_split(
+            pos_edges, test_size=test_size, random_state=random_state, shuffle=True
+        )
             train_edges.append(pos_train)
             test_edges.append(pos_test)
 
         if len(neg_edges) > 0:
-            neg_train, neg_test = train_test_split(
-                neg_edges, test_size=test_size, random_state=random_state, shuffle=True
-            )
+        neg_train, neg_test = train_test_split(
+            neg_edges, test_size=test_size, random_state=random_state, shuffle=True
+        )
             train_edges.append(neg_train)
             test_edges.append(neg_test)
 
@@ -87,8 +87,8 @@ def split(label_file, tf_file, target_file, output_dir, test_size=0.2, hub_ratio
 
     # Combine all edges
     if train_edges and test_edges:
-        train_df = pd.concat(train_edges).reset_index(drop=True)
-        test_df = pd.concat(test_edges).reset_index(drop=True)
+    train_df = pd.concat(train_edges).reset_index(drop=True)
+    test_df = pd.concat(test_edges).reset_index(drop=True)
     else:
         print("Error: No edges found for splitting!")
         return
