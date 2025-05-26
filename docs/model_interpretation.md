@@ -54,7 +54,7 @@ instead of the linear form \(W_{\text{self}}x_i+W_{\text{neigh}}\tilde m_i\) ass
 
 ### 4. Empirical evidence
 
-![Shrinkage vs degree](../pretrain_outputs/Lofgof_mESC_TF500+/pretrain/shrinkage_vs_degree.png)
+![Shrinkage vs degree](figures/shrinkage_vs_degree.png)
 
 *Figure 1.* For low-degree genes the shrinkage weight \(w_i\) clusters near 1 (self-reliance), whereas highly connected nodes rely more on their neighbours — exactly the Bayesian trade-off predicted by \(w_{is}\).
 
@@ -93,13 +93,13 @@ The decoder MLP $g_\theta$ maps $\mathbf z_i$ to a denoised expression profile, 
 
 Implementation detail:  the edge decoder in code is a two-layer MLP on the concatenated latent means $[\mu_i\,\, \mu_j]$, **not** a pure dot product.  This affords additional flexibility but still factors through $\mu$, preserving its role as the sufficient statistic of $q(\mathbf z)$.
 
-![VAE UMAP](../pretrain_outputs/Lofgof_mESC_TF500+/pretrain/vae_umap.png)
+![VAE UMAP](figures/vae_umap.png)
 
 *Figure 2.* UMAP of latent means shows TF genes (red) occupying specific manifolds, consistent with shared regulatory programmes.
 
 A side-by-side comparison with raw expression confirms that the VAE compresses noisy log-counts into smoother, functionally relevant clusters.
 
-![Expression vs embedding](../pretrain_outputs/Lofgof_mESC_TF500+/pretrain/expr_vs_emb_umap.png)
+![Expression vs embedding](figures/expr_vs_emb_umap.png)
 
 *Figure 3.* Raw expression (left) vs VAE embedding (right) for the same genes.
 
@@ -117,7 +117,7 @@ The code uses `BCEWithLogitsLoss`, hence the network outputs log-odds directly w
 
 The aleatory uncertainty of each edge is approximated with a delta-method in `RegNet.edge_variance` and plotted below.
 
-![Probability vs variance](../pretrain_outputs/Lofgof_mESC_TF500+/pretrain/prob_vs_variance.png)
+![Probability vs variance](figures/prob_vs_variance.png)
 
 *Figure 4.* High-confidence edges (right x-axis) exhibit low logit variance, validating the Bayesian uncertainty estimate.
 
