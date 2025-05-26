@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SLURM job logs
+*.out
+*.err
+
+# model outputs and data artifacts
+pretrain_outputs/
+
+# notebooks and checkpoints
+*.ipynb_checkpoints/
+
+# numpy arrays, torch checkpoints
+*.npy
+*.pth
+
+# PDFs and slides
+*.pdf
+*.tex
+
+# temporary summary tables
+summary_table_tmp.md
+summary_table_latest.md 

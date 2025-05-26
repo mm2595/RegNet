@@ -36,18 +36,33 @@ def build_edge_index(label_path, tf_path, target_path, gene_to_idx):
 
 # ------------------------------------------------------------------ #
 def build_edge_index_from_split(label_path, gene_to_idx):
-    """Load edges from train_test_split output format"""
+    """Load edges from train_test_split output format.
+    The split CSV can contain either:
+      1) columns TF / Target with gene symbols (legacy behaviour), or
+      2) numeric TF / Target indices **plus** string tf_gene / target_gene with symbols.
+    We first look for the symbol columns and fall back to TF/Target.
+    """
     labels_df = pd.read_csv(label_path)
-    
+
+    # Decide which columns to use for symbols
+    if {"tf_gene", "target_gene"}.issubset(labels_df.columns):
+        tf_col, tg_col = "tf_gene", "target_gene"
+    else:
+        tf_col, tg_col = "TF", "Target"
+
     edges, labels = [], []
     for _, row in labels_df.iterrows():
-        g1, g2 = row["TF"], row["Target"]
+        g1, g2 = row[tf_col], row[tg_col]
         if g1 in gene_to_idx and g2 in gene_to_idx:
             edges.append([gene_to_idx[g1], gene_to_idx[g2]])
             labels.append(float(row["Label"]))
-    
-    edge_index  = torch.tensor(edges,  dtype=torch.long).t().contiguous()
-    edge_labels = torch.tensor(labels, dtype=torch.float32)
+
+    if len(edges) == 0:
+        edge_index  = torch.empty((2, 0), dtype=torch.long)
+        edge_labels = torch.empty((0,), dtype=torch.float32)
+    else:
+        edge_index  = torch.tensor(edges,  dtype=torch.long).t().contiguous()
+        edge_labels = torch.tensor(labels, dtype=torch.float32)
     return edge_index, edge_labels
 
 # ------------------------------------------------------------------ #
@@ -85,6 +100,10 @@ def parse_args():
 # ------------------------------------------------------------------ #
 def evaluate_metrics(preds, labels):
     p, y = preds.cpu().numpy(), labels.cpu().numpy()
+    # Handle cases with insufficient class variety
+    if y.size == 0 or len(np.unique(y)) == 1:
+        # Undefined metrics – fallback to NaN or baseline values
+        return float('nan'), float('nan')
     return average_precision_score(y, p), roc_auc_score(y, p)
 
 def train_epoch(model, loader, optim_, crit, device, beta_kl=1.0, recon_weight=0.1, entropy_weight=0.01):
@@ -245,6 +264,7 @@ def main():
 
         # Optionally compute validation metrics
         val_aupr = None
+        val_auroc = None
         if val_loader is not None:
             with torch.no_grad():
                 preds_v = []; labels_v = []
@@ -253,20 +273,21 @@ def main():
                     logits_v, _, _, _, _ = model(vdata.x, vdata.edge_index, vdata.edge_index.t())
                     preds_v.append(torch.sigmoid(logits_v).cpu()); labels_v.append(vdata.edge_attr.float().cpu())
                 preds_v = torch.cat(preds_v); labels_v = torch.cat(labels_v)
-                val_aupr, _ = evaluate_metrics(preds_v, labels_v)
+                val_aupr, val_auroc = evaluate_metrics(preds_v, labels_v)
 
-        msg = f"Ep{ep+1:02d}  L{loss:.4f}  train AUPR {aupr:.3f}"
+        msg = f"Ep{ep+1:02d}  L{loss:.4f}  train AUPR {aupr:.3f}  AUROC {auroc:.3f}"
         if val_aupr is not None:
-            msg += f"  val AUPR {val_aupr:.3f}"
-        msg += f"  AUROC {auroc:.3f}"
+            msg += f"  val AUPR {val_aupr:.3f}  val AUROC {val_auroc:.3f}"
         print(msg)
 
-        history.append({"epoch": ep+1, "loss": loss, "AUPR": aupr, "val_AUPR": val_aupr, "AUROC": auroc})
+        history.append({"epoch": ep+1, "loss": loss, "AUPR": aupr, "val_AUPR": val_aupr, "AUROC": auroc, "val_AUROC": val_auroc})
 
         metric_to_track = val_aupr if val_aupr is not None else aupr
+        if metric_to_track is None or (isinstance(metric_to_track, float) and np.isnan(metric_to_track)):
+            metric_to_track = -float('inf')  # skip updating
 
         # Early stopping check
-        if metric_to_track is not None and metric_to_track > best_aupr + args.min_delta:
+        if metric_to_track > best_aupr + args.min_delta:
             best_aupr = metric_to_track
             best_state = {k: v.cpu() for k, v in model.state_dict().items()}
             wait = 0

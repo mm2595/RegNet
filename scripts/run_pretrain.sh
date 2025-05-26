@@ -145,6 +145,7 @@ def main_skip_fisher():
             beta_kl=args.beta_kl, recon_weight=args.recon_weight, entropy_weight=args.entropy_weight)
         # Validation metric
         val_aupr = None
+        val_auroc = None
         if val_loader is not None:
             with torch.no_grad():
                 p_list, y_list = [], []
@@ -153,14 +154,13 @@ def main_skip_fisher():
                     logits_v, _, _, _, _ = model(vd.x, vd.edge_index, vd.edge_index.t())
                     p_list.append(torch.sigmoid(logits_v).cpu()); y_list.append(vd.edge_attr.float().cpu())
                 p_all = torch.cat(p_list); y_all = torch.cat(y_list)
-                val_aupr, _ = evaluate_metrics(p_all, y_all)
+                val_aupr, val_auroc = evaluate_metrics(p_all, y_all)
 
-        msg = f"Ep{ep+1:02d}  L{loss:.4f}  train AUPR {aupr:.3f}"
+        msg = f"Ep{ep+1:02d}  L{loss:.4f}  train AUPR {aupr:.3f}  AUROC {auroc:.3f}"
         if val_aupr is not None:
-            msg += f"  val AUPR {val_aupr:.3f}"
-        msg += f" AUROC {auroc:.3f}"
+            msg += f"  val AUPR {val_aupr:.3f}  val AUROC {val_auroc:.3f}"
         print(msg)
-        history.append({"epoch": ep+1, "loss": loss, "AUPR": aupr, "val_AUPR": val_aupr, "AUROC": auroc})
+        history.append({"epoch": ep+1, "loss": loss, "AUPR": aupr, "val_AUPR": val_aupr, "AUROC": auroc, "val_AUROC": val_auroc})
 
         metric = val_aupr if val_aupr is not None else aupr
         if metric > best_aupr + args.min_delta:
