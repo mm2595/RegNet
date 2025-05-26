@@ -85,8 +85,10 @@ def main():
                               dtype=torch.float32)
 
     # Load ground‑truth labels
-    tf_map  = dict(pd.read_csv(args.tf_file   ).values)  # index -> TF
-    tgt_map = dict(pd.read_csv(args.target_file).values) # index -> Gene
+    tf_df = pd.read_csv(args.tf_file)
+    tgt_df = pd.read_csv(args.target_file)
+    tf_map  = dict(tf_df.iloc[:, :2].values)   # index -> TF
+    tgt_map = dict(tgt_df.iloc[:, :2].values)  # index -> Gene
     label_series = map_indices(pd.read_csv(args.label_csv),
                                tf_map, tgt_map)
     # align
@@ -105,7 +107,7 @@ def main():
 
     # Fit temperature
     T_star = fit_temperature(logits, labels)
-    print(f"Optimal temperature T = {T_star:.3f}")
+    print(f"Optimal temperature T = {T_star:.3f}")
 
     # Calibrate ALL predictions
     all_logits = torch.logit(torch.tensor(edge_df['Prediction'].values,
@@ -116,7 +118,8 @@ def main():
 
     probs_cal = torch.sigmoid(all_logits / T_star).numpy()
     edge_df['Calibrated'] = probs_cal
-    edge_df.to_csv(f"{args.output_dir}/calibrated_predictions.csv",
+    edge_df.to_csv(os.path.join(args.output_dir,
+                                "calibrated_test_predictions.csv"),
                    index=False)
 
     # Metrics (on valid labelled subset)

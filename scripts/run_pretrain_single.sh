@@ -132,7 +132,7 @@ TEMP_DIR="${OUTPUT_DIR}/temperature_calibration"
 mkdir -p "${TEMP_DIR}"
 
 if [ ! -f "${TEMP_DIR}/calibrated_test_predictions.csv" ]; then
-  python -m regnet.tools.temperature_calibration \
+  python -m tools.temperature_calibration \
      --edge_logit_csv "${EVAL_DIR}/evaluation_predictions.csv" \
      --label_csv "${SPLIT_DIR}/test_labels.csv" \
      --tf_file "${TF_FILE}" \
