@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 import logging
 import traceback
 
@@ -26,7 +27,7 @@ def parse_args():
                    help="Expression matrix (for raw-feature comparison)")
     p.add_argument("--tf_file", required=False,
                    help="Optional TF list to colour points in embedding plot")
-    p.add_argument("--method", choices=["umap", "tsne"], default="umap")
+    p.add_argument("--method", choices=["umap", "tsne", "pca"], default="umap")
     p.add_argument("--n_top_edges", type=int, default=500,
                    help="Nr of top-confidence edges for prob-variance scatter")
     p.add_argument("--plots", nargs="*", default=["basic", "shrinkage"],
@@ -41,28 +42,68 @@ def load_embeddings(path_csv):
 
 
 def reduce_dim(mat, method="umap"):
+    """Utility to obtain 2-D coordinates from a high-dimensional matrix."""
     if method == "umap" and _HAS_UMAP:
         reducer = umap.UMAP(random_state=42)
     elif method == "tsne":
         reducer = TSNE(random_state=42)
+    elif method == "pca":
+        reducer = PCA(n_components=2, random_state=42)
     else:
+        # Graceful fallback → TSNE if UMAP unavailable or unknown arg
         reducer = TSNE(random_state=42)
     return reducer.fit_transform(mat)
+
+
+def _make_group_labels(names, tf_set):
+    """Return a list with human-readable group labels."""
+    return ["TF genes" if n in tf_set else "non TF genes" for n in names]
 
 
 def plot_vae_embedding(genes, vae_emb, tf_genes, out_png, method="umap"):
     coords = reduce_dim(vae_emb, method)
     plt.figure(figsize=(8, 6))
+
     if tf_genes:
-        is_tf = [g in tf_genes for g in genes]
-        palette = {True: "tab:red", False: "tab:blue"}
-        sns.scatterplot(x=coords[:, 0], y=coords[:, 1], hue=is_tf, s=10,
-                        palette=palette, legend=False, alpha=0.7)
+        groups = _make_group_labels(genes, tf_genes)
+        palette = {"TF genes": "tab:red", "non TF genes": "tab:blue"}
+        sns.scatterplot(x=coords[:, 0], y=coords[:, 1], hue=groups, s=10,
+                        palette=palette, alpha=0.7)
+        plt.legend(title="Gene type", loc="best")
     else:
         plt.scatter(coords[:, 0], coords[:, 1], s=8, alpha=0.7)
+
     plt.title(f"{method.upper()} of VAE latent means")
     plt.xlabel("Dim 1"); plt.ylabel("Dim 2")
     plt.tight_layout(); plt.savefig(out_png, dpi=300)
+    plt.close()
+
+
+def plot_expression_vs_embedding(expr_df, vae_emb, gene_names, tf_set, out_png, method="umap"):
+    """Side-by-side comparison of raw expression vs embedding."""
+    logging.info("Creating expression vs embedding scatter plot using %s", method.upper())
+
+    # Raw expression → reduce dim
+    expr_coords = reduce_dim(expr_df.values, method)
+    emb_coords = reduce_dim(vae_emb, method)
+
+    groups = _make_group_labels(gene_names, tf_set)
+    palette = {"TF genes": "tab:red", "non TF genes": "tab:blue"}
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    sns.scatterplot(ax=axes[0], x=expr_coords[:, 0], y=expr_coords[:, 1], hue=groups,
+                    palette=palette, s=10, alpha=0.7, legend=False)
+    axes[0].set_title(f"Raw expression ({method.upper()})")
+    axes[0].set_xlabel("Dim 1"); axes[0].set_ylabel("Dim 2")
+
+    sns.scatterplot(ax=axes[1], x=emb_coords[:, 0], y=emb_coords[:, 1], hue=groups,
+                    palette=palette, s=10, alpha=0.7)
+    axes[1].set_title(f"VAE embedding ({method.upper()})")
+    axes[1].set_xlabel("Dim 1"); axes[1].set_ylabel("Dim 2")
+    axes[1].legend(title="Gene type", loc="best")
+
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=300)
     plt.close()
 
 
@@ -121,6 +162,17 @@ def main():
         plot_vae_embedding(gene_names, vae_emb, tf_set,
                            os.path.join(out_dir, f"vae_{args.method}.png"), method=args.method)
         logging.info(f"VAE embedding plot created: vae_{args.method}.png")
+
+        # If expression matrix is available, create comparison figure
+        if args.expression_csv and os.path.isfile(args.expression_csv):
+            expr_df_for_cmp = pd.read_csv(args.expression_csv, index_col=0)
+            if set(gene_names).issubset(expr_df_for_cmp.index):
+                plot_expression_vs_embedding(expr_df_for_cmp.loc[gene_names], vae_emb, gene_names,
+                                              tf_set, os.path.join(out_dir, f"expr_vs_emb_{args.method}.png"),
+                                              method=args.method)
+                logging.info("Expression vs embedding comparison plot created")
+            else:
+                logging.warning("Gene names in embeddings do not fully match expression data; skipping comparison plot")
     except Exception as e:
         logging.error(f"Error in VAE embedding plot: {e}")
         logging.debug(traceback.format_exc())
@@ -301,13 +353,13 @@ def main():
                 alpha_np = safe_detach(alpha).cpu().numpy()
                 deg_np = safe_detach(deg).cpu().numpy()
                 
-                # Create is_tf flags
-                is_tf = [g in tf_set for g in expr_df.index]
-                
+                # Create group labels (TF / non TF)
+                group_labels = _make_group_labels(expr_df.index, tf_set)
+
                 df_s = pd.DataFrame({
                     "deg": deg_np + 1e-3,  # Add small constant to avoid log(0)
                     "alpha": alpha_np,
-                    "is_tf": is_tf
+                    "group": group_labels
                 })
                 logging.info(f"DataFrame created: {df_s.shape}")
                 
@@ -316,7 +368,8 @@ def main():
 
                 # (1) alpha vs log-degree
                 plt.figure(figsize=(6,4))
-                sns.scatterplot(x="deg", y="alpha", hue="is_tf", data=df_s, alpha=0.6, s=10)
+                sns.scatterplot(x="deg", y="alpha", hue="group", data=df_s, alpha=0.6, s=10,
+                                palette={"TF genes": "tab:red", "non TF genes": "tab:blue"})
                 plt.xscale("log");
                 plt.xlabel("In-degree (log10)"); plt.ylabel("Shrinkage weight w_i");
                 plt.title("Bayesian shrinkage vs in-degree (layer-1)");
@@ -335,7 +388,8 @@ def main():
                 mean_expr = x.mean(dim=1).cpu().numpy();
                 df_s["expr"] = mean_expr + 1e-6
                 plt.figure(figsize=(6,4))
-                sns.scatterplot(x="expr", y="alpha", hue="is_tf", data=df_s, s=10, alpha=0.6)
+                sns.scatterplot(x="expr", y="alpha", hue="group", data=df_s, s=10, alpha=0.6,
+                                palette={"TF genes": "tab:red", "non TF genes": "tab:blue"})
                 plt.xscale("log");
                 plt.xlabel("Mean expression (log10)"); plt.ylabel("Shrinkage weight w_i");
                 plt.title("Shrinkage vs expression level");
